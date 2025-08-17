@@ -790,7 +790,7 @@ func main() {
 		if setupModelFinal, ok := finalModel.(*ui.SetupModel); ok {
 			prodPath, nonprodPath := setupModelFinal.GetConfigPaths()
 			if prodPath != "" || nonprodPath != "" {
-				// Exit TUI and run setup in terminal
+				// Exit TUI and run setup, then continue to main app
 				fmt.Println("\nStarting VPN configuration setup...")
 				fmt.Println("This process requires sudo privileges to write to /etc/wireguard/")
 				fmt.Println("")
@@ -801,11 +801,10 @@ func main() {
 				}
 				
 				fmt.Println("\n✅ Setup completed successfully!")
-				fmt.Println("You can now run 'tui-wireguard-vpn' to manage your VPN connections.")
-				return
+				fmt.Println("Starting main VPN management interface...")
+				fmt.Println("")
 			}
 		}
-		return
 	}
 
 	// Normal operation - start main VPN management UI

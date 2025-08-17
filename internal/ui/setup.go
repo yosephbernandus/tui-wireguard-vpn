@@ -281,7 +281,7 @@ func (m *SetupModel) handleEnterKey() (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.nonprodPath = path
-		// Exit TUI and run setup
+		// Exit TUI and run setup, then return to main app
 		return m, m.exitAndRunSetup()
 	}
 	return m, nil
@@ -309,6 +309,7 @@ func (m *SetupModel) handleFileBrowserEnter() (tea.Model, tea.Cmd) {
 					m.inputMode = 0
 				} else {
 					m.nonprodPath = filePath
+					// Exit TUI and run setup, then return to main app
 					return m, m.exitAndRunSetup()
 				}
 				return m, nil
@@ -476,10 +477,15 @@ func (m *SetupModel) View() string {
 		s.WriteString("This requires sudo privileges to write to /etc/wireguard/\n")
 
 	case 7: // Complete
-		s.WriteString(setupSuccessStyle.Render("Setup Complete!"))
+		s.WriteString(setupSuccessStyle.Render("Configuration Paths Selected!"))
 		s.WriteString("\n\n")
-		s.WriteString("Configuration files have been installed successfully.\n")
-		s.WriteString("You can now use the VPN management features.\n\n")
+		s.WriteString("Configuration file paths have been saved:\n")
+		s.WriteString(fmt.Sprintf("• Production: %s\n", m.prodPath))
+		s.WriteString(fmt.Sprintf("• Non-Production: %s\n", m.nonprodPath))
+		s.WriteString("\n")
+		s.WriteString("You can now proceed to the main application to:\n")
+		s.WriteString("• Start VPN connections\n")
+		s.WriteString("• Update configurations as needed\n\n")
 		s.WriteString("Press q to continue to main application")
 	}
 
