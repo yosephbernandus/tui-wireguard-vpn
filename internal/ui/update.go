@@ -68,18 +68,13 @@ func NewUpdateModel() *UpdateModel {
 
 	model := &UpdateModel{
 		textinput:     ti,
-		stage:         3, // Start directly in file picker mode for panel embedding
-		inputMode:     1, // File browser mode
+		stage:         1, // Start with choice mode
+		inputMode:     0, // Default to text input
 		currentDir:    currentDir,
 		selectedIndex: 0,
 		showHidden:    true, // Show all files including hidden ones by default
 		viewportStart: 0,
 		viewportSize:  15, // Show 15 files at once
-	}
-
-	// Load directory contents
-	if err := model.loadDirectory(); err != nil {
-		model.message = fmt.Sprintf("Error loading directory: %v", err)
 	}
 
 	return model
@@ -182,7 +177,10 @@ func (m *UpdateModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		case "up", "k":
-			if m.stage == 3 && len(m.files) > 0 {
+			if m.stage == 1 { // Choice mode
+				m.inputMode = 1 - m.inputMode // Toggle between 0 and 1
+				return m, nil
+			} else if m.stage == 3 && len(m.files) > 0 {
 				if m.selectedIndex > 0 {
 					m.selectedIndex--
 					// Auto-scroll up if needed
@@ -193,7 +191,10 @@ func (m *UpdateModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 		case "down", "j":
-			if m.stage == 3 && len(m.files) > 0 {
+			if m.stage == 1 { // Choice mode
+				m.inputMode = 1 - m.inputMode // Toggle between 0 and 1
+				return m, nil
+			} else if m.stage == 3 && len(m.files) > 0 {
 				if m.selectedIndex < len(m.files)-1 {
 					m.selectedIndex++
 					// Auto-scroll down if needed
@@ -228,15 +229,13 @@ func (m *UpdateModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "enter":
 			switch m.stage {
-			case 0: // Info screen
-				m.stage = 1
-				return m, nil
 			case 1: // Choose mode screen
 				if m.inputMode == 0 {
 					m.stage = 2 // Text input
 					m.textinput.Focus()
 				} else {
 					m.stage = 3 // File picker
+					m.loadDirectory()
 				}
 				return m, nil
 			case 2: // Text input mode
@@ -353,17 +352,6 @@ func (m *UpdateModel) View() string {
 	s.WriteString("\n\n")
 
 	switch m.stage {
-	case 0: // Info screen
-		s.WriteString(updateInfoStyle.Render("This will update your VPN configuration with new settings."))
-		s.WriteString("\n")
-		s.WriteString("The process will:\n")
-		s.WriteString("• Select your updated WireGuard config file\n")
-		s.WriteString("• Detect if it's for Production or Non-Production\n")
-		s.WriteString("• Merge it with the current template\n")
-		s.WriteString("• Update the active configuration\n")
-		s.WriteString("\n")
-		s.WriteString("Press Enter to continue, Esc to cancel")
-
 	case 1: // Choose input mode
 		s.WriteString("Choose how to select your config file:\n\n")
 
