@@ -15,8 +15,7 @@ import (
 
 var (
 	titleStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#FAFAFA")).
-		Background(lipgloss.Color("#7D56F4")).
+		Foreground(lipgloss.Color("#FFFFFF")).
 		Padding(0, 1)
 
 	statusStyle = lipgloss.NewStyle().
@@ -111,14 +110,14 @@ type model struct {
 
 func initialModel() model {
 	return model{
-		title:  "WireGuard VPN Manager",
+		title:  "╭─────────────────────────╮\n│  WireGuard VPN Manager  │\n╰─────────────────────────╯",
 		status: &vpn.ConnectionStatus{Connected: false},
 		choices: []string{
 			"Start Production VPN",
 			"Start Non-Production VPN", 
 			"Stop VPN",
 			"Refresh Status",
-			"Update Configuration",
+			"Update VPN Configuration",
 			"Quit",
 		},
 		cursor:         0,
@@ -636,7 +635,7 @@ func (m model) buildOutputPanel(width, height int) string {
 		
 		// Show scroll indicators
 		if m.logViewportStart > 0 {
-			content.WriteString("  ⬆️ (more entries above)\n")
+			content.WriteString("  ↑ (more entries above)\n")
 		}
 		
 		// Show viewport entries
@@ -651,7 +650,7 @@ func (m model) buildOutputPanel(width, height int) string {
 		
 		// Show bottom scroll indicator
 		if endIdx < len(m.outputLog) {
-			content.WriteString("  ⬇️ (more entries below)\n")
+			content.WriteString("  ↓ (more entries below)\n")
 		}
 		
 		// Show position indicator

@@ -16,30 +16,29 @@ import (
 
 var (
 	updateTitleStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#FAFAFA")).
-		Background(lipgloss.Color("#BD93F9")).
-		Padding(0, 1)
+				Foreground(lipgloss.Color("#FFFFFF")).
+				Padding(0, 1)
 
 	updateInfoStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#626262")).
-		MarginTop(1).
-		MarginBottom(1)
+			Foreground(lipgloss.Color("#626262")).
+			MarginTop(1).
+			MarginBottom(1)
 
 	updateErrorStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#FF5F87"))
+				Foreground(lipgloss.Color("#FF5F87"))
 
 	updateSuccessStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#50FA7B"))
+				Foreground(lipgloss.Color("#50FA7B"))
 )
 
 type UpdateModel struct {
-	filepicker    filepicker.Model
-	textinput     textinput.Model
-	stage         int // 0: info, 1: choose mode, 2: text input, 3: file picker, 4: processing, 5: complete
-	inputMode     int // 0: text input, 1: file browser
-	message       string
-	err           error
-	configPath    string
+	filepicker filepicker.Model
+	textinput  textinput.Model
+	stage      int // 0: info, 1: choose mode, 2: text input, 3: file picker, 4: processing, 5: complete
+	inputMode  int // 0: text input, 1: file browser
+	message    string
+	err        error
+	configPath string
 	// Custom file browser
 	currentDir    string
 	files         []os.FileInfo
@@ -69,20 +68,20 @@ func NewUpdateModel() *UpdateModel {
 
 	model := &UpdateModel{
 		textinput:     ti,
-		stage:         3,    // Start directly in file picker mode for panel embedding
-		inputMode:     1,    // File browser mode
+		stage:         3, // Start directly in file picker mode for panel embedding
+		inputMode:     1, // File browser mode
 		currentDir:    currentDir,
 		selectedIndex: 0,
-		showHidden:    true,  // Show all files including hidden ones by default
+		showHidden:    true, // Show all files including hidden ones by default
 		viewportStart: 0,
-		viewportSize:  15,   // Show 15 files at once
+		viewportSize:  15, // Show 15 files at once
 	}
 
 	// Load directory contents
 	if err := model.loadDirectory(); err != nil {
 		model.message = fmt.Sprintf("Error loading directory: %v", err)
 	}
-	
+
 	return model
 }
 
@@ -128,7 +127,7 @@ func (m *UpdateModel) loadDirectory() error {
 		if filteredFiles[j].Name() == ".." {
 			return false
 		}
-		
+
 		if filteredFiles[i].IsDir() && !filteredFiles[j].IsDir() {
 			return true
 		}
@@ -140,7 +139,7 @@ func (m *UpdateModel) loadDirectory() error {
 
 	m.files = filteredFiles
 	m.selectedIndex = 0
-	m.viewportStart = 0  // Reset viewport to top when loading new directory
+	m.viewportStart = 0 // Reset viewport to top when loading new directory
 	return nil
 }
 
@@ -166,7 +165,7 @@ func (m *UpdateModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		// No special handling needed for custom file browser
 		return m, nil
-		
+
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q":
@@ -367,15 +366,15 @@ func (m *UpdateModel) View() string {
 
 	case 1: // Choose input mode
 		s.WriteString("Choose how to select your config file:\n\n")
-		
+
 		if m.inputMode == 0 {
-			s.WriteString("▶ 1. Type file path manually\n")
+			s.WriteString("> 1. Type file path manually\n")
 			s.WriteString("  2. Browse files\n")
 		} else {
 			s.WriteString("  1. Type file path manually\n")
-			s.WriteString("▶ 2. Browse files\n")
+			s.WriteString("> 2. Browse files\n")
 		}
-		
+
 		s.WriteString("\nUse Tab to switch, Enter to select, Esc to go back")
 
 	case 2: // Text input mode
@@ -391,57 +390,57 @@ func (m *UpdateModel) View() string {
 		}
 		s.WriteString(fmt.Sprintf("📁 Current directory: %s | %s | Files found: %d\n", m.currentDir, hiddenStatus, len(m.files)))
 		s.WriteString("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-		s.WriteString("📂 = Directory | 📄 = File | ⬆️ ⬇️ Navigate | ➡️ Enter directory | Enter = Select .conf file\n")
+		s.WriteString("📂 = Directory | 📄 = File | ↑↓ Navigate | → Enter directory | Enter = Select .conf file\n")
 		s.WriteString("Shortcuts: h = Home | Ctrl+H = Toggle hidden files | Esc = Go back\n")
 		s.WriteString("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n")
-		
+
 		// Display files and directories (viewport only)
 		viewportEnd := m.viewportStart + m.viewportSize
 		if viewportEnd > len(m.files) {
 			viewportEnd = len(m.files)
 		}
-		
+
 		// Show scrolling indicator if needed
 		if m.viewportStart > 0 {
-			s.WriteString("  ⬆️ (more files above)\n")
+			s.WriteString("  ↑ (more files above)\n")
 		}
-		
+
 		for i := m.viewportStart; i < viewportEnd; i++ {
 			file := m.files[i]
 			cursor := "  "
 			if i == m.selectedIndex {
 				cursor = "> "
 			}
-			
+
 			icon := "📄"
 			if file.IsDir() {
 				icon = "📂"
 			}
-			
+
 			name := file.Name()
 			if file.IsDir() {
 				name += "/"
 			}
-			
+
 			// Highlight selected item
 			line := fmt.Sprintf("%s%s %s", cursor, icon, name)
 			if i == m.selectedIndex {
 				// Add some visual highlight for selected item
-				line = fmt.Sprintf("→ %s %s", icon, name)
+				line = fmt.Sprintf("> %s %s", icon, name)
 			}
 			s.WriteString(line + "\n")
 		}
-		
+
 		// Show scrolling indicator if there are more files below
 		if viewportEnd < len(m.files) {
-			s.WriteString("  ⬇️ (more files below)\n")
+			s.WriteString("  ↓ (more files below)\n")
 		}
-		
+
 		if len(m.files) == 0 {
 			s.WriteString("(No files found in this directory)\n")
 		}
-		
-		s.WriteString("\n💡 Tip: Navigate with ↑↓, Enter to select/enter directories")
+
+		s.WriteString("Note: Navigate with ↑↓, Enter to select/enter directories")
 	}
 
 	if m.message != "" {
@@ -459,3 +458,4 @@ func (m *UpdateModel) View() string {
 func (m *UpdateModel) GetConfigPath() string {
 	return m.configPath
 }
+
