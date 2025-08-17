@@ -24,4 +24,5 @@ type Service interface {
 	Start(env Environment) error
 	Stop() error
 	UpdateConfig(userConfigPath string) error
+	GetConfig(env Environment) (string, error)
 }

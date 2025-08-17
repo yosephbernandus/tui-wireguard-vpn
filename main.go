@@ -88,6 +88,12 @@ type vpnOperationMsg struct {
 	err       error
 }
 
+type configViewMsg struct {
+	environment vpn.Environment
+	config      string
+	err         error
+}
+
 type model struct {
 	title          string
 	status         *vpn.ConnectionStatus
@@ -118,6 +124,8 @@ func initialModel() model {
 			"Stop VPN",
 			"Refresh Status",
 			"Update VPN Configuration",
+			"View Production Config",
+			"View Non-Production Config",
 			"Quit",
 		},
 		cursor:         0,
@@ -170,6 +178,17 @@ func updateConfig(svc vpn.Service, configPath string) tea.Cmd {
 			operation: "update_config",
 			success:   err == nil,
 			err:       err,
+		}
+	}
+}
+
+func viewConfig(svc vpn.Service, env vpn.Environment) tea.Cmd {
+	return func() tea.Msg {
+		config, err := svc.GetConfig(env)
+		return configViewMsg{
+			environment: env,
+			config:      config,
+			err:         err,
 		}
 	}
 }
@@ -284,7 +303,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return tea.WindowSizeMsg{Width: m.terminalWidth, Height: m.terminalHeight}
 				}
 				return m, tea.Batch(initCmd, sizeCmd)
-			case 5: // Quit
+			case 5: // View Production Config
+				return m, viewConfig(m.vpnSvc, vpn.Production)
+			case 6: // View Non-Production Config
+				return m, viewConfig(m.vpnSvc, vpn.NonProduction)
+			case 7: // Quit
 				return m, tea.Quit
 			}
 		}
@@ -359,6 +382,31 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			default:
 				m.message = fmt.Sprintf("Operation %s failed: %v", msg.operation, msg.err)
 				m.addLogEntry(fmt.Sprintf("Operation %s failed: %v", msg.operation, msg.err))
+			}
+		}
+		
+	case configViewMsg:
+		if msg.err != nil {
+			envName := "Production"
+			if msg.environment == vpn.NonProduction {
+				envName = "Non-Production"
+			}
+			m.message = fmt.Sprintf("❌ Failed to read %s config: %v", envName, msg.err)
+			m.addLogEntry(fmt.Sprintf("❌ Failed to read %s config: %v", envName, msg.err))
+		} else {
+			envName := "Production"
+			if msg.environment == vpn.NonProduction {
+				envName = "Non-Production"
+			}
+			m.message = fmt.Sprintf("📄 %s VPN Configuration", envName)
+			m.addLogEntry(fmt.Sprintf("📄 Viewed %s VPN Configuration", envName))
+			
+			// Add config details to activity log (without sensitive data)
+			configLines := strings.Split(msg.config, "\n")
+			for _, line := range configLines {
+				if strings.TrimSpace(line) != "" {
+					m.addLogEntry(fmt.Sprintf("  %s", line))
+				}
 			}
 		}
 	}

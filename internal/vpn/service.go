@@ -3,6 +3,7 @@ package vpn
 import (
 	"bufio"
 	"fmt"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -172,6 +173,62 @@ func (w *WireGuardService) UpdateConfig(userConfigPath string) error {
 	// Use the same logic as the original j1-vpn-update-config script
 	processor := config.NewConfigProcessor()
 	return processor.ProcessUserConfigDirectly(userConfigPath)
+}
+
+func (w *WireGuardService) GetConfig(env Environment) (string, error) {
+	configName := fmt.Sprintf("julo-%s.conf", string(env))
+	configPath := fmt.Sprintf("/etc/wireguard/%s", configName)
+	
+	// Read the config file
+	content, err := os.ReadFile(configPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read config file %s: %v", configPath, err)
+	}
+	
+	// Filter out sensitive information
+	lines := strings.Split(string(content), "\n")
+	var filteredLines []string
+	
+	for _, line := range lines {
+		trimmedLine := strings.TrimSpace(line)
+		
+		// Skip empty lines and comments
+		if trimmedLine == "" || strings.HasPrefix(trimmedLine, "#") {
+			continue
+		}
+		
+		// Filter out sensitive keys but keep other config
+		if strings.HasPrefix(trimmedLine, "PrivateKey") ||
+		   strings.HasPrefix(trimmedLine, "PresharedKey") ||
+		   strings.HasPrefix(trimmedLine, "PublicKey") {
+			// Show field name but hide the actual key
+			parts := strings.SplitN(trimmedLine, "=", 2)
+			if len(parts) == 2 {
+				filteredLines = append(filteredLines, fmt.Sprintf("%s = [HIDDEN]", strings.TrimSpace(parts[0])))
+			}
+		} else if strings.HasPrefix(trimmedLine, "AllowedIPs") {
+			// Format AllowedIPs with proper line breaks for better readability
+			parts := strings.SplitN(trimmedLine, "=", 2)
+			if len(parts) == 2 {
+				filteredLines = append(filteredLines, strings.TrimSpace(parts[0])+" =")
+				// Split IPs by comma and show each on a new line with indentation
+				ips := strings.Split(strings.TrimSpace(parts[1]), ",")
+				for i, ip := range ips {
+					cleanIP := strings.TrimSpace(ip)
+					if i == 0 {
+						filteredLines = append(filteredLines, fmt.Sprintf("  %s", cleanIP))
+					} else {
+						filteredLines = append(filteredLines, fmt.Sprintf("  %s", cleanIP))
+					}
+				}
+			}
+		} else {
+			// Show all other configuration lines
+			filteredLines = append(filteredLines, trimmedLine)
+		}
+	}
+	
+	return strings.Join(filteredLines, "\n"), nil
 }
 
 func parseHandshakeTime(handshakeStr string) (time.Time, error) {
