@@ -66,7 +66,8 @@ func (cp *ConfigProcessor) InstallTemplates() error {
 		return fmt.Errorf("failed to install non-production template: %v", err)
 	}
 
-	fmt.Printf("Installed templates to %s\n", ConfigDir)
+	// Don't print directly - let the TUI handle the output
+	// fmt.Printf("Installed templates to %s\n", ConfigDir)
 	return nil
 }
 
@@ -85,22 +86,17 @@ func (cp *ConfigProcessor) ProcessUserConfig(userConfigPath string) error {
 
 	// Determine environment based on endpoint (exactly like bash script)
 	var templatePath, outputPath string
-	var envName string
 
 	switch endpoint {
 	case ProdEndpoint:
 		templatePath = filepath.Join(ConfigDir, ProdTemplate)
 		outputPath = filepath.Join(ConfigDir, ProdConfig)
-		envName = "JULO Production"
 	case NonProdEndpoint:
 		templatePath = filepath.Join(ConfigDir, NonProdTemplate)
 		outputPath = filepath.Join(ConfigDir, NonProdConfig)
-		envName = "JULO Non Production"
 	default:
 		return fmt.Errorf("the config you specify (%s) is not JULO's VPN config.\nPlease check with Infra Team", userConfigPath)
 	}
-
-	fmt.Printf("Working on %s configuration\n", envName)
 
 	// Check if template exists
 	if _, err := os.Stat(templatePath); os.IsNotExist(err) {
@@ -112,7 +108,8 @@ func (cp *ConfigProcessor) ProcessUserConfig(userConfigPath string) error {
 		return fmt.Errorf("failed to update config: %v", err)
 	}
 
-	fmt.Printf("Generated new config file %s\n", outputPath)
+	// Don't print directly - let the TUI handle the output
+	// fmt.Printf("Generated new config file %s\n", outputPath)
 	return nil
 }
 
@@ -225,21 +222,24 @@ func (cp *ConfigProcessor) writeFileWithContent(path, content string) error {
 // RunSetup performs the complete setup process (like make install + j1-vpn-update-config)
 func (cp *ConfigProcessor) RunSetup(prodConfigPath, nonprodConfigPath string) error {
 	// Step 1: Install templates (like "make install")
-	fmt.Println("Installing WireGuard configuration templates...")
+	// Don't print directly - let the TUI handle the output
+	// fmt.Println("Installing WireGuard configuration templates...")
 	if err := cp.InstallTemplates(); err != nil {
 		return fmt.Errorf("failed to install templates: %v", err)
 	}
 
 	// Step 2: Process user configs (like "j1-vpn-update-config")
 	if prodConfigPath != "" {
-		fmt.Println("\nProcessing production configuration...")
+		// Don't print directly - let the TUI handle the output
+		// fmt.Println("\nProcessing production configuration...")
 		if err := cp.ProcessUserConfig(prodConfigPath); err != nil {
 			return fmt.Errorf("failed to process production config: %v", err)
 		}
 	}
 
 	if nonprodConfigPath != "" {
-		fmt.Println("\nProcessing non-production configuration...")
+		// Don't print directly - let the TUI handle the output
+		// fmt.Println("\nProcessing non-production configuration...")
 		if err := cp.ProcessUserConfig(nonprodConfigPath); err != nil {
 			return fmt.Errorf("failed to process non-production config: %v", err)
 		}
