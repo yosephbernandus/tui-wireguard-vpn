@@ -27,39 +27,52 @@ var (
 	helpStyle = lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#626262"))
 
-	// Panel styles for 3-panel layout
+	// Panel styles for 4-panel layout
 	mainPanelStyle = lipgloss.NewStyle().
 		BorderStyle(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("#BD93F9")).
+		BorderForeground(lipgloss.Color("#FFFFFF")).
 		Padding(1).
 		MarginRight(1)
 
 	inputPanelStyle = lipgloss.NewStyle().
 		BorderStyle(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("#50FA7B")).
+		BorderForeground(lipgloss.Color("#FFFFFF")).
 		Padding(1)
 
 	outputPanelStyle = lipgloss.NewStyle().
 		BorderStyle(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("#FFB86C")).
+		BorderForeground(lipgloss.Color("#FFFFFF")).
 		Padding(1).
 		MarginTop(1)
 
 	statusPanelStyle = lipgloss.NewStyle().
 		BorderStyle(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("#F1FA8C")).
+		BorderForeground(lipgloss.Color("#FFFFFF")).
 		Padding(1).
 		MarginBottom(1)
 
 	controlsPanelStyle = lipgloss.NewStyle().
 		BorderStyle(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("#8BE9FD")).
+		BorderForeground(lipgloss.Color("#FFFFFF")).
 		Padding(1).
 		MarginTop(1).
 		MarginLeft(1)
 
 	selectedStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#BD93F9"))
+		Foreground(lipgloss.Color("#007ACC"))
+
+	// Active panel highlighting style
+	activePanelBorder = lipgloss.Color("#007ACC")
+	normalPanelBorder = lipgloss.Color("#FFFFFF")
+	connectedStatusStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FAFAFA")).
+		Background(lipgloss.Color("#28A745")).
+		Padding(1, 2)
+
+	disconnectedStatusStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FAFAFA")).
+		Background(lipgloss.Color("#DC3545")).
+		Padding(1, 2)
 
 	disabledStyle = lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#6272A4"))
@@ -439,7 +452,11 @@ func (m model) buildMainStatusPanel(width, height int) string {
 		}
 	}
 	
-	content.WriteString(statusStyle.Render("Status: "+statusText) + "\n")
+	if m.status != nil && m.status.Connected {
+		content.WriteString(connectedStatusStyle.Render("Status: "+statusText) + "\n")
+	} else {
+		content.WriteString(disconnectedStatusStyle.Render("Status: "+statusText) + "\n")
+	}
 	
 	// Show connection details if connected
 	if m.status != nil && m.status.Connected {
@@ -501,9 +518,9 @@ func (m model) buildMainStatusPanel(width, height int) string {
 	
 	panelStyle := mainPanelStyle.Width(width).Height(height)
 	if m.activePanel == 0 {
-		panelStyle = panelStyle.BorderForeground(lipgloss.Color("#BD93F9")) // Highlight active panel
+		panelStyle = panelStyle.BorderForeground(activePanelBorder) // Blue for active panel
 	} else {
-		panelStyle = panelStyle.BorderForeground(lipgloss.Color("#6272A4")) // Dim inactive panel
+		panelStyle = panelStyle.BorderForeground(normalPanelBorder) // White for inactive panel
 	}
 	
 	return panelStyle.Render(content.String())
@@ -564,9 +581,9 @@ func (m model) buildInputPanel(width, height int) string {
 		Padding(1)
 		
 	if m.activePanel == 1 {
-		panelStyle = panelStyle.BorderForeground(lipgloss.Color("#50FA7B")) // Highlight active panel
+		panelStyle = panelStyle.BorderForeground(activePanelBorder) // Blue for active panel
 	} else {
-		panelStyle = panelStyle.BorderForeground(lipgloss.Color("#6272A4")) // Dim inactive panel
+		panelStyle = panelStyle.BorderForeground(normalPanelBorder) // White for inactive panel
 	}
 	
 	return panelStyle.Render(inputView)
@@ -585,7 +602,7 @@ File picker for config selection:
 Tab to switch between panels
 Esc to close panels`
 
-	panelStyle := inputPanelStyle.Width(width).Height(height).BorderForeground(lipgloss.Color("#6272A4"))
+	panelStyle := inputPanelStyle.Width(width).Height(height).BorderForeground(normalPanelBorder)
 	return panelStyle.Render(helpText)
 }
 
@@ -647,7 +664,9 @@ func (m model) buildOutputPanel(width, height int) string {
 	// Apply focus styling to panel border
 	panelStyle := outputPanelStyle.Width(width).Height(height)
 	if m.activePanel == 2 {
-		panelStyle = panelStyle.BorderForeground(lipgloss.Color("#BD93F9")) // Highlight when focused
+		panelStyle = panelStyle.BorderForeground(activePanelBorder) // Blue when focused
+	} else {
+		panelStyle = panelStyle.BorderForeground(normalPanelBorder) // White when not focused
 	}
 	
 	return panelStyle.Render(content.String())
@@ -696,7 +715,13 @@ func (m model) buildControlsPanel(width, height int) string {
 	content.WriteString("• q/Ctrl+C - Quit\n")
 	content.WriteString("• Tab - Cycle panels\n")
 	
-	return controlsPanelStyle.Width(width).Height(height).Render(content.String())
+	panelStyle := controlsPanelStyle.Width(width).Height(height)
+	if m.activePanel == 3 {
+		panelStyle = panelStyle.BorderForeground(activePanelBorder) // Blue when focused
+	} else {
+		panelStyle = panelStyle.BorderForeground(normalPanelBorder) // White when not focused
+	}
+	return panelStyle.Render(content.String())
 }
 
 func formatBytes(bytes uint64) string {
