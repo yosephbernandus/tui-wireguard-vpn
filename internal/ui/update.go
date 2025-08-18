@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/filepicker"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -32,7 +31,6 @@ var (
 )
 
 type UpdateModel struct {
-	filepicker filepicker.Model
 	textinput  textinput.Model
 	stage      int // 0: info, 1: choose mode, 2: text input, 3: file picker, 4: processing, 5: complete
 	inputMode  int // 0: text input, 1: file browser

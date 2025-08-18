@@ -18,10 +18,6 @@ var (
 		Foreground(lipgloss.Color("#FFFFFF")).
 		Padding(0, 1)
 
-	statusStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#FAFAFA")).
-		Background(lipgloss.Color("#7D56F4")).
-		Padding(1, 2)
 
 	helpStyle = lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#626262"))
@@ -116,7 +112,7 @@ type model struct {
 
 func initialModel() model {
 	return model{
-		title:  "╭─────────────────────────╮\n│  WireGuard VPN Manager  │\n╰─────────────────────────╯",
+		title:  "WireGuard VPN Manager",
 		status: &vpn.ConnectionStatus{Connected: false},
 		choices: []string{
 			"Start Production VPN",
@@ -573,46 +569,6 @@ func (m model) buildMainStatusPanel(width, height int) string {
 	return panelStyle.Render(content.String())
 }
 
-func (m model) buildStatusPanel(width, height int) string {
-	var content strings.Builder
-	
-	content.WriteString("📊 VPN Status\n\n")
-	
-	// VPN Status section
-	statusText := "Disconnected"
-	if m.status != nil && m.status.Connected {
-		env := "Unknown"
-		if m.status.Environment == vpn.Production {
-			env = "Production"
-		} else if m.status.Environment == vpn.NonProduction {
-			env = "Non-Production"
-		}
-		statusText = fmt.Sprintf("Connected to %s", env)
-		if m.status.Interface != "" {
-			statusText += fmt.Sprintf(" (%s)", m.status.Interface)
-		}
-	}
-	
-	content.WriteString(statusStyle.Render("Status: "+statusText) + "\n\n")
-	
-	// Show additional connection details if connected
-	if m.status != nil && m.status.Connected {
-		if m.status.Endpoint != "" {
-			content.WriteString(fmt.Sprintf("Endpoint: %s\n", m.status.Endpoint))
-		}
-		if m.status.LastSeen != nil {
-			content.WriteString(fmt.Sprintf("Last Handshake: %s ago\n", time.Since(*m.status.LastSeen).Truncate(time.Second)))
-		}
-		if m.status.BytesRx > 0 || m.status.BytesTx > 0 {
-			content.WriteString(fmt.Sprintf("Data: ↓ %s  ↑ %s\n", formatBytes(m.status.BytesRx), formatBytes(m.status.BytesTx)))
-		}
-	} else {
-		content.WriteString("No active VPN connection\n")
-		content.WriteString("Select a VPN option from the menu\n")
-	}
-	
-	return statusPanelStyle.Width(width).Height(height).Render(content.String())
-}
 
 func (m model) buildInputPanel(width, height int) string {
 	if m.inputModel == nil {
@@ -670,7 +626,13 @@ func (m model) buildOutputPanel(width, height int) string {
 	} else {
 		content.WriteString(title + "\n")
 	}
-	content.WriteString("──────────────────────────────────────────────────────────────────────────\n")
+	// Use a dynamic separator that fits the panel width
+	separatorWidth := width - 4 // Account for borders
+	if separatorWidth < 1 {
+		separatorWidth = 1
+	}
+	separator := strings.Repeat("─", separatorWidth)
+	content.WriteString(separator + "\n")
 	
 	if len(m.outputLog) == 0 {
 		content.WriteString("No activity yet. Start by using the VPN controls above.\n")
@@ -690,8 +652,12 @@ func (m model) buildOutputPanel(width, height int) string {
 		for i := m.logViewportStart; i < endIdx; i++ {
 			// Clean up the log entry and ensure it fits
 			logEntry := strings.TrimSpace(m.outputLog[i])
-			if len(logEntry) > width-6 { // Account for borders and prefix
-				logEntry = logEntry[:width-9] + "..."
+			maxWidth := width - 8 // Account for borders (4) + bullet (2) + margin (2)
+			if maxWidth < 10 {
+				maxWidth = 10 // Minimum width
+			}
+			if len(logEntry) > maxWidth {
+				logEntry = logEntry[:maxWidth-3] + "..."
 			}
 			content.WriteString(fmt.Sprintf("• %s\n", logEntry))
 		}
@@ -703,8 +669,14 @@ func (m model) buildOutputPanel(width, height int) string {
 		
 		// Show position indicator
 		if len(m.outputLog) > viewportSize {
-			content.WriteString(fmt.Sprintf("Showing %d-%d of %d entries", 
-				m.logViewportStart+1, endIdx, len(m.outputLog)))
+			indicator := fmt.Sprintf("Showing %d-%d of %d entries", 
+				m.logViewportStart+1, endIdx, len(m.outputLog))
+			maxWidth := width - 4 // Account for borders
+			if len(indicator) > maxWidth {
+				indicator = fmt.Sprintf("%d-%d/%d", 
+					m.logViewportStart+1, endIdx, len(m.outputLog))
+			}
+			content.WriteString(indicator)
 		}
 	}
 	
