@@ -163,21 +163,11 @@ download_binary() {
 setup_sudoers() {
     info "Setting up passwordless sudo..."
     
-    # Check if we're running in a pipe (non-interactive) or if stdin is not available
-    if [ ! -t 0 ] || ! tty -s 2>/dev/null; then
-        info "Non-interactive mode detected. Setting up passwordless sudo (default: Y)"
-        setup_sudo="Y"
-    else
-        echo -n "Continue to run VPN without password? (Y/n): "
-        # Set a timeout for read to avoid hanging
-        if read -r -t 30 setup_sudo; then
-            # Default to yes if empty
-            setup_sudo=${setup_sudo:-Y}
-        else
-            warn "No input received or timeout, using default: Y"
-            setup_sudo="Y"
-        fi
-    fi
+    echo -n "Setup passwordless sudo to run VPN without password? (Y/n): "
+    read -r setup_sudo < /dev/tty
+    
+    # Default to yes if empty
+    setup_sudo=${setup_sudo:-Y}
     
     if [[ $setup_sudo =~ ^[Yy]$ ]]; then
         local sudoers_file="/etc/sudoers.d/wireguard-vpn"
@@ -225,14 +215,9 @@ setup_alias() {
     local user_home=$(eval echo "~$actual_user")
     
     # Ask for alias name
-    if [ ! -t 0 ]; then
-        info "Non-interactive mode detected. Using default alias: vpn"
-        alias_name="vpn"
-    else
-        echo -n "Enter alias name for VPN manager (default: vpn): "
-        read -r alias_name
-        alias_name=${alias_name:-vpn}
-    fi
+    echo -n "Enter alias name for VPN manager (default: vpn): "
+    read -r alias_name < /dev/tty
+    alias_name=${alias_name:-vpn}
     
     # Find shell config files
     local shell_configs=()
@@ -259,19 +244,14 @@ setup_alias() {
     # Choose config file
     local shell_config
     if [[ ${#shell_configs[@]} -gt 1 ]]; then
-        if [ ! -t 0 ]; then
-            info "Multiple shell configs found. Using first one: ${shell_configs[0]}"
-            shell_config="${shell_configs[0]}"
-        else
-            echo "Multiple shell configs found:"
-            for i in "${!shell_configs[@]}"; do
-                echo "  $((i+1)). ${shell_configs[i]}"
-            done
-            echo -n "Choose config file (1-${#shell_configs[@]}, default: 1): "
-            read -r choice
-            choice=${choice:-1}
-            shell_config="${shell_configs[$((choice-1))]}"
-        fi
+        echo "Multiple shell configs found:"
+        for i in "${!shell_configs[@]}"; do
+            echo "  $((i+1)). ${shell_configs[i]}"
+        done
+        echo -n "Choose config file (1-${#shell_configs[@]}, default: 1): "
+        read -r choice < /dev/tty
+        choice=${choice:-1}
+        shell_config="${shell_configs[$((choice-1))]}"
     else
         shell_config="${shell_configs[0]}"
     fi
@@ -283,22 +263,15 @@ setup_alias() {
     
     # Check if alias already exists
     if grep -q "alias ${alias_name}=" "$shell_config" 2>/dev/null; then
-        if [ ! -t 0 ]; then
-            info "Alias '${alias_name}' already exists. Overwriting (non-interactive mode)"
+        warn "Alias '${alias_name}' already exists in ${shell_config}"
+        echo -n "Overwrite? (y/N): "
+        read -r overwrite < /dev/tty
+        if [[ $overwrite =~ ^[Yy]$ ]]; then
             sed -i.bak "/alias ${alias_name}=/d" "$shell_config"
             echo "$alias_line" >> "$shell_config"
             info "✓ Alias updated in ${shell_config}"
         else
-            warn "Alias '${alias_name}' already exists in ${shell_config}"
-            echo -n "Overwrite? (y/N): "
-            read -r overwrite
-            if [[ $overwrite =~ ^[Yy]$ ]]; then
-                sed -i.bak "/alias ${alias_name}=/d" "$shell_config"
-                echo "$alias_line" >> "$shell_config"
-                info "✓ Alias updated in ${shell_config}"
-            else
-                info "Keeping existing alias"
-            fi
+            info "Keeping existing alias"
         fi
     else
         echo "$alias_line" >> "$shell_config"
