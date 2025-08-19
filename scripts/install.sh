@@ -230,6 +230,14 @@ setup_alias() {
     [[ -f "$user_home/.bashrc" ]] && shell_configs+=("$user_home/.bashrc")
     [[ -f "$user_home/.bash_profile" ]] && shell_configs+=("$user_home/.bash_profile")
     
+    # fish shell - modern shell with different syntax
+    if [[ -d "$user_home/.config/fish" ]]; then
+        # Create fish config directory if it doesn't exist
+        mkdir -p "$user_home/.config/fish"
+        # Fish config file
+        shell_configs+=("$user_home/.config/fish/config.fish")
+    fi
+    
     # macOS specific - zsh profile
     if [[ "$OS" == "darwin" && -f "$user_home/.zprofile" ]]; then
         shell_configs+=("$user_home/.zprofile")
@@ -245,17 +253,21 @@ setup_alias() {
         echo "Shell configuration files to check:"
         if [[ "$OS" == "linux" ]]; then
             echo "  • Linux typically uses: ~/.bashrc or ~/.bash_profile"
+            echo "  • Fish shell uses: ~/.config/fish/config.fish"
         elif [[ "$OS" == "darwin" ]]; then
             echo "  • macOS (10.15+) uses: ~/.zshrc or ~/.zprofile"
             echo "  • macOS (older) uses: ~/.bash_profile"
+            echo "  • Fish shell uses: ~/.config/fish/config.fish"
         fi
         echo ""
         echo "Add this alias manually to your shell config:"
-        echo "  alias ${alias_name}='sudo ${INSTALL_DIR}/${BINARY_NAME}'"
+        echo "  alias ${alias_name}='sudo ${INSTALL_DIR}/${BINARY_NAME}'    # bash/zsh"
+        echo "  alias ${alias_name} 'sudo ${INSTALL_DIR}/${BINARY_NAME}'    # fish"
         echo ""
         echo "Then restart your terminal or run:"
-        echo "  source ~/.bashrc    # for bash"
-        echo "  source ~/.zshrc     # for zsh"
+        echo "  source ~/.bashrc              # for bash"
+        echo "  source ~/.zshrc               # for zsh"
+        echo "  source ~/.config/fish/config.fish    # for fish"
         return
     fi
     
@@ -271,6 +283,8 @@ setup_alias() {
                 shell_type=" (zsh)"
             elif [[ "$config_file" == *".bashrc"* || "$config_file" == *".bash_profile"* ]]; then
                 shell_type=" (bash)"
+            elif [[ "$config_file" == *"config.fish"* ]]; then
+                shell_type=" (fish)"
             fi
             echo "  $((i+1)). ${config_file}${shell_type}"
         done
@@ -288,6 +302,8 @@ setup_alias() {
             shell_type=" (zsh)"
         elif [[ "$shell_config" == *".bashrc"* || "$shell_config" == *".bash_profile"* ]]; then
             shell_type=" (bash)"
+        elif [[ "$shell_config" == *"config.fish"* ]]; then
+            shell_type=" (fish)"
         fi
         info "Using shell config: ${shell_config##*/}${shell_type}"
     fi
@@ -295,15 +311,39 @@ setup_alias() {
     # Create alias (use sudo since setup operations require root privileges)
     local alias_cmd="sudo ${INSTALL_DIR}/${BINARY_NAME}"
     
-    local alias_line="alias ${alias_name}='${alias_cmd}'"
+    # Fish shell uses different alias syntax
+    local alias_line
+    if [[ "$shell_config" == *"config.fish"* ]]; then
+        alias_line="alias ${alias_name} '${alias_cmd}'"
+    else
+        alias_line="alias ${alias_name}='${alias_cmd}'"
+    fi
     
-    # Check if alias already exists
-    if grep -q "alias ${alias_name}=" "$shell_config" 2>/dev/null; then
+    # Check if alias already exists (different patterns for different shells)
+    local alias_exists=false
+    if [[ "$shell_config" == *"config.fish"* ]]; then
+        # Fish uses "alias name command" format
+        if grep -q "alias ${alias_name} " "$shell_config" 2>/dev/null; then
+            alias_exists=true
+        fi
+    else
+        # bash/zsh use "alias name='command'" format
+        if grep -q "alias ${alias_name}=" "$shell_config" 2>/dev/null; then
+            alias_exists=true
+        fi
+    fi
+    
+    if [[ "$alias_exists" == "true" ]]; then
         warn "Alias '${alias_name}' already exists in ${shell_config}"
         echo -n "Overwrite? (y/N): "
         read -r overwrite < /dev/tty
         if [[ $overwrite =~ ^[Yy]$ ]]; then
-            sed -i.bak "/alias ${alias_name}=/d" "$shell_config"
+            # Remove existing alias (different patterns for different shells)
+            if [[ "$shell_config" == *"config.fish"* ]]; then
+                sed -i.bak "/alias ${alias_name} /d" "$shell_config"
+            else
+                sed -i.bak "/alias ${alias_name}=/d" "$shell_config"
+            fi
             echo "$alias_line" >> "$shell_config"
             info "✓ Alias updated in ${shell_config}"
         else
@@ -339,8 +379,9 @@ show_completion() {
         fi
         echo ""
         echo "After restarting your terminal or run:"
-        echo "  source $(eval echo "~${SUDO_USER:-$USER}")/.zshrc   # if using zsh"
-        echo "  source $(eval echo "~${SUDO_USER:-$USER}")/.bashrc  # if using bash"
+        echo "  source $(eval echo "~${SUDO_USER:-$USER}")/.zshrc           # if using zsh"
+        echo "  source $(eval echo "~${SUDO_USER:-$USER}")/.bashrc          # if using bash"
+        echo "  source $(eval echo "~${SUDO_USER:-$USER}")/.config/fish/config.fish  # if using fish"
         echo ""
     fi
     
