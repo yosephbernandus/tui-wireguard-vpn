@@ -256,8 +256,8 @@ setup_alias() {
         shell_config="${shell_configs[0]}"
     fi
     
-    # Create alias (run directly since sudoers is configured for internal operations)
-    local alias_cmd="${INSTALL_DIR}/${BINARY_NAME}"
+    # Create alias (use sudo since setup operations require root privileges)
+    local alias_cmd="sudo ${INSTALL_DIR}/${BINARY_NAME}"
     
     local alias_line="alias ${alias_name}='${alias_cmd}'"
     
