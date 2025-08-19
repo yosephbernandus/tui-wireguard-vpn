@@ -220,40 +220,76 @@ setup_alias() {
     alias_name=${alias_name:-vpn}
     
     # Find shell config files
+    info "Detecting shell configuration files..."
     local shell_configs=()
+    
+    # zsh is default on macOS (10.15+) and popular on Linux
     [[ -f "$user_home/.zshrc" ]] && shell_configs+=("$user_home/.zshrc")
+    
+    # bash is default on most Linux distributions
     [[ -f "$user_home/.bashrc" ]] && shell_configs+=("$user_home/.bashrc")
     [[ -f "$user_home/.bash_profile" ]] && shell_configs+=("$user_home/.bash_profile")
     
-    # macOS specific
+    # macOS specific - zsh profile
     if [[ "$OS" == "darwin" && -f "$user_home/.zprofile" ]]; then
         shell_configs+=("$user_home/.zprofile")
     fi
     
+    if [[ ${#shell_configs[@]} -gt 0 ]]; then
+        info "Found ${#shell_configs[@]} shell config(s): ${shell_configs[*]##*/}"
+    fi
+    
     if [[ ${#shell_configs[@]} -eq 0 ]]; then
         warn "No shell config found."
-        echo "Add this alias manually to your shell config:"
-        if [[ "$PASSWORDLESS_SUDO" == "true" ]]; then
-            echo "  alias ${alias_name}='${INSTALL_DIR}/${BINARY_NAME}'"
-        else
-            echo "  alias ${alias_name}='sudo ${INSTALL_DIR}/${BINARY_NAME}'"
+        echo ""
+        echo "Shell configuration files to check:"
+        if [[ "$OS" == "linux" ]]; then
+            echo "  • Linux typically uses: ~/.bashrc or ~/.bash_profile"
+        elif [[ "$OS" == "darwin" ]]; then
+            echo "  • macOS (10.15+) uses: ~/.zshrc or ~/.zprofile"
+            echo "  • macOS (older) uses: ~/.bash_profile"
         fi
+        echo ""
+        echo "Add this alias manually to your shell config:"
+        echo "  alias ${alias_name}='sudo ${INSTALL_DIR}/${BINARY_NAME}'"
+        echo ""
+        echo "Then restart your terminal or run:"
+        echo "  source ~/.bashrc    # for bash"
+        echo "  source ~/.zshrc     # for zsh"
         return
     fi
     
     # Choose config file
     local shell_config
     if [[ ${#shell_configs[@]} -gt 1 ]]; then
+        echo ""
         echo "Multiple shell configs found:"
         for i in "${!shell_configs[@]}"; do
-            echo "  $((i+1)). ${shell_configs[i]}"
+            local config_file="${shell_configs[i]}"
+            local shell_type=""
+            if [[ "$config_file" == *".zshrc"* || "$config_file" == *".zprofile"* ]]; then
+                shell_type=" (zsh)"
+            elif [[ "$config_file" == *".bashrc"* || "$config_file" == *".bash_profile"* ]]; then
+                shell_type=" (bash)"
+            fi
+            echo "  $((i+1)). ${config_file}${shell_type}"
         done
+        echo ""
+        echo "Tip: Choose the config for your current shell"
+        echo "     Run 'echo \$SHELL' to see your default shell"
         echo -n "Choose config file (1-${#shell_configs[@]}, default: 1): "
         read -r choice < /dev/tty
         choice=${choice:-1}
         shell_config="${shell_configs[$((choice-1))]}"
     else
         shell_config="${shell_configs[0]}"
+        local shell_type=""
+        if [[ "$shell_config" == *".zshrc"* || "$shell_config" == *".zprofile"* ]]; then
+            shell_type=" (zsh)"
+        elif [[ "$shell_config" == *".bashrc"* || "$shell_config" == *".bash_profile"* ]]; then
+            shell_type=" (bash)"
+        fi
+        info "Using shell config: ${shell_config##*/}${shell_type}"
     fi
     
     # Create alias (use sudo since setup operations require root privileges)
