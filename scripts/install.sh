@@ -163,7 +163,7 @@ download_binary() {
 setup_sudoers() {
     info "Setting up passwordless sudo..."
     
-    echo -n "Allow running VPN manager without password prompt? (Y/n): "
+    echo -n "Continue to run VPN without password? (Y/n): "
     read -r setup_sudo
     
     # Default to yes if empty
@@ -173,35 +173,20 @@ setup_sudoers() {
         local sudoers_file="/etc/sudoers.d/wireguard-vpn"
         local actual_user="${SUDO_USER:-$USER}"
         
+        info "Detected user: $actual_user"
+        
         # Remove old sudoers file if exists
         [[ -f "$sudoers_file" ]] && rm -f "$sudoers_file"
         
-        # Create sudoers entry based on OS
-        case $OS in
-            darwin)
-                # macOS: check if user is in admin group
-                if groups "$actual_user" | grep -q "\badmin\b"; then
-                    echo "%admin ALL=(ALL) NOPASSWD: ${INSTALL_DIR}/${BINARY_NAME}" > "$sudoers_file"
-                    info "✓ Added sudoers entry for admin group"
-                else
-                    echo "$actual_user ALL=(ALL) NOPASSWD: ${INSTALL_DIR}/${BINARY_NAME}" > "$sudoers_file"
-                    info "✓ Added sudoers entry for user: $actual_user"
-                fi
-                ;;
-            linux)
-                # Linux: check for sudo/wheel groups
-                if groups "$actual_user" | grep -q "\bsudo\b"; then
-                    echo "%sudo ALL=(ALL) NOPASSWD: ${INSTALL_DIR}/${BINARY_NAME}" > "$sudoers_file"
-                    info "✓ Added sudoers entry for sudo group"
-                elif groups "$actual_user" | grep -q "\bwheel\b"; then
-                    echo "%wheel ALL=(ALL) NOPASSWD: ${INSTALL_DIR}/${BINARY_NAME}" > "$sudoers_file"
-                    info "✓ Added sudoers entry for wheel group"
-                else
-                    echo "$actual_user ALL=(ALL) NOPASSWD: ${INSTALL_DIR}/${BINARY_NAME}" > "$sudoers_file"
-                    info "✓ Added sudoers entry for user: $actual_user"
-                fi
-                ;;
-        esac
+        # Always create user-specific sudoers entry (like your preference)
+        # This allows running both wg-quick and the TUI app without password
+        # SETENV allows preserving environment variables needed for TUI display
+        cat > "$sudoers_file" << EOF
+# Allow $actual_user to run WireGuard VPN TUI without password
+$actual_user ALL=(ALL) NOPASSWD:SETENV: ${INSTALL_DIR}/${BINARY_NAME}
+$actual_user ALL=(ALL) NOPASSWD: /usr/bin/wg-quick
+$actual_user ALL=(ALL) NOPASSWD: /usr/bin/wg
+EOF
         
         # Set proper permissions
         chmod 440 "$sudoers_file"
@@ -213,10 +198,11 @@ setup_sudoers() {
             return 1
         fi
         
-        info "✓ Passwordless sudo configured"
+        info "✓ Passwordless sudo configured for user: $actual_user"
+        info "✓ Added permissions for: ${INSTALL_DIR}/${BINARY_NAME}, wg-quick, wg"
         PASSWORDLESS_SUDO=true
     else
-        info "Skipping sudoers setup"
+        info "Skipping sudoers setup - you'll need to use 'sudo' when running VPN commands"
         PASSWORDLESS_SUDO=false
     fi
 }
@@ -270,13 +256,8 @@ setup_alias() {
         shell_config="${shell_configs[0]}"
     fi
     
-    # Create alias
-    local alias_cmd
-    if [[ "$PASSWORDLESS_SUDO" == "true" ]]; then
-        alias_cmd="${INSTALL_DIR}/${BINARY_NAME}"
-    else
-        alias_cmd="sudo ${INSTALL_DIR}/${BINARY_NAME}"
-    fi
+    # Create alias (run directly since sudoers is configured for internal operations)
+    local alias_cmd="${INSTALL_DIR}/${BINARY_NAME}"
     
     local alias_line="alias ${alias_name}='${alias_cmd}'"
     
@@ -339,6 +320,7 @@ show_completion() {
     echo "  • Select your production config file"
     echo "  • Select your non-production config file"
     echo "  • Automatic installation and configuration"
+    echo "  • Please restart your terminal or open a new terminal"
     echo ""
     
     echo "Documentation:"
