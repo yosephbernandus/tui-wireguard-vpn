@@ -66,10 +66,10 @@ check_privileges() {
         error "This installer requires sudo privileges"
         echo ""
         echo "Please run with sudo:"
-        echo "  curl -sSL https://raw.githubusercontent.com/${REPO}/main/scripts/install.sh | sudo bash"
+        echo "  curl -sSL https://raw.githubusercontent.com/${REPO}/master/scripts/install.sh | sudo bash"
         echo ""
         echo "Or download and run manually:"
-        echo "  wget https://raw.githubusercontent.com/${REPO}/main/scripts/install.sh"
+        echo "  wget https://raw.githubusercontent.com/${REPO}/master/scripts/install.sh"
         echo "  chmod +x install.sh"
         echo "  sudo ./install.sh"
         exit 1
