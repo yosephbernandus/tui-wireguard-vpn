@@ -163,7 +163,7 @@ download_binary() {
 setup_sudoers() {
     info "Setting up passwordless sudo..."
     
-    echo -n "Setup passwordless sudo to run VPN without password? (Y/n): "
+    echo -n "Run VPN without sudo password? (Y/n): "
     read -r setup_sudo < /dev/tty
     
     # Default to yes if empty
