@@ -252,12 +252,12 @@ func RunSetupDirectly(prodConfigPath, nonprodConfigPath string) error {
 	// Try to run the setup process directly, like the original bash scripts
 	processor := NewConfigProcessor()
 	err := processor.RunSetup(prodConfigPath, nonprodConfigPath)
-	
+
 	if err != nil {
 		// Check if it's a permission error and provide platform-specific guidance
-		if strings.Contains(err.Error(), "permission denied") || 
-		   strings.Contains(err.Error(), "operation not permitted") ||
-		   strings.Contains(err.Error(), "access is denied") {
+		if strings.Contains(err.Error(), "permission denied") ||
+			strings.Contains(err.Error(), "operation not permitted") ||
+			strings.Contains(err.Error(), "access is denied") {
 			return getSetupPermissionErrorMessage()
 		}
 		return err
@@ -267,7 +267,7 @@ func RunSetupDirectly(prodConfigPath, nonprodConfigPath string) error {
 
 func getSetupPermissionErrorMessage() error {
 	var instructions string
-	
+
 	switch runtime.GOOS {
 	case "windows":
 		instructions = "Please run as Administrator:\n" +
@@ -275,12 +275,12 @@ func getSetupPermissionErrorMessage() error {
 			"Then run: tui-wireguard-vpn"
 	case "darwin":
 		instructions = "Please run with administrator privileges:\n" +
-			"sudo ./tui-wireguard-vpn"
+			"sudo tui-wireguard-vpn"
 	default: // linux and other unix-like systems
 		instructions = "Please run with administrator privileges:\n" +
-			"sudo ./tui-wireguard-vpn"
+			"sudo tui-wireguard-vpn"
 	}
-	
+
 	return fmt.Errorf("insufficient permissions to install templates and config files.\n\n%s\n\nThen run the initial setup again.", instructions)
 }
 
@@ -289,9 +289,9 @@ func (cp *ConfigProcessor) ProcessUserConfigDirectly(userConfigPath string) erro
 	err := cp.ProcessUserConfig(userConfigPath)
 	if err != nil {
 		// Check if it's a permission error and provide platform-specific guidance
-		if strings.Contains(err.Error(), "permission denied") || 
-		   strings.Contains(err.Error(), "operation not permitted") ||
-		   strings.Contains(err.Error(), "access is denied") {
+		if strings.Contains(err.Error(), "permission denied") ||
+			strings.Contains(err.Error(), "operation not permitted") ||
+			strings.Contains(err.Error(), "access is denied") {
 			return cp.getPermissionErrorMessage(userConfigPath)
 		}
 		return err
@@ -301,7 +301,7 @@ func (cp *ConfigProcessor) ProcessUserConfigDirectly(userConfigPath string) erro
 
 func (cp *ConfigProcessor) getPermissionErrorMessage(userConfigPath string) error {
 	var instructions string
-	
+
 	switch runtime.GOOS {
 	case "windows":
 		instructions = "Please run as Administrator:\n" +
@@ -309,11 +309,12 @@ func (cp *ConfigProcessor) getPermissionErrorMessage(userConfigPath string) erro
 			"Then run: tui-wireguard-vpn"
 	case "darwin":
 		instructions = "Please run with administrator privileges:\n" +
-			"sudo ./tui-wireguard-vpn"
+			"sudo tui-wireguard-vpn"
 	default: // linux and other unix-like systems
 		instructions = "Please run with administrator privileges:\n" +
-			"sudo ./tui-wireguard-vpn"
+			"sudo tui-wireguard-vpn"
 	}
-	
+
 	return fmt.Errorf("insufficient permissions to write config files.\n\n%s\n\nThen select 'Update Configuration' again.", instructions)
 }
+
